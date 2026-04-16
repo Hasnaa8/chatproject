@@ -7,7 +7,7 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import update_session_auth_hash
-from .tasks import send_welcome_email
+from .tasks import send_welcome_email, send_otp_email
 from .serializers import UserSerializer, ChangePasswordSerializer, VerifyOTPSerializer
 from .models import CustomUser, EmailOTP
 
@@ -101,12 +101,14 @@ def verify_otp(request):
         otp = serializer.validated_data['otp']
         
         try:
-            user = CustomUser.objects.get(email=email)
+            user = CustomUser.objects.get(email=email)    
             otp_obj = EmailOTP.objects.get(user=user, otp=otp)
             
             if not otp_obj.is_valid():
                 return Response({"error": "OTP expired"}, status=400)
+            
             send_welcome_email.delay(email)
+            
             user.is_verified = True
             user.save()
             otp_obj.delete() # Cleanup

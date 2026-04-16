@@ -16,7 +16,7 @@ from .models import CustomUser, EmailOTP
 from django.core.mail import send_mail
 from django.utils import timezone  # Useful for timestamping OTP creation
 import random
-
+from .tasks import send_otp_email
 
 
 @receiver(reset_password_token_created)
@@ -64,12 +64,9 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
 def send_otp_on_register(sender, instance, created, **kwargs):
     if created and not instance.is_verified:
         # Create or get OTP object
-        otp_obj, _ = EmailOTP.objects.get_or_create(user=instance)
+        otp_obj, _ = EmailOTP.objects.get_or_create(user=instance)        
         otp_obj.generate_otp()
+        send_otp_email.delay(instance.email, otp_obj.otp)
         
-        send_mail(
-            "Your Verification Code",
-            f"Your OTP is: {otp_obj.otp}. It expires in 10 minutes.",
-            "hasnaaprogs@gmail.com",
-            [instance.email],
-        )
+        
+        
