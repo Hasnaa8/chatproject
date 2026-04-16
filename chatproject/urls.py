@@ -16,8 +16,19 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('accounts.urls')), 
     path('api/password_reset/', include('django_rest_passwordreset.urls', namespace='password_reset')),
+    
+    # This generates the actual schema file (YAML/JSON)
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    
+    # This creates the beautiful UI you see in your browser
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    
+    # Optional: Redoc version (cleaner for reading)
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]

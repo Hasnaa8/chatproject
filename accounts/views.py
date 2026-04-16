@@ -3,16 +3,21 @@ from rest_framework.authentication import TokenAuthentication
 from django.contrib.auth import authenticate
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes, schema
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import update_session_auth_hash
-
+from .tasks import send_welcome_email
 from .serializers import UserSerializer, ChangePasswordSerializer, VerifyOTPSerializer
 from .models import CustomUser, EmailOTP
 
+from drf_spectacular.openapi import AutoSchema
+from drf_spectacular.utils import extend_schema
+
 # registering users
 @api_view(['POST'])
+@schema(AutoSchema())
+@extend_schema(responses=UserSerializer)
 def register_user(request):
     if request.method == 'POST':
         serializer = UserSerializer(data=request.data)
@@ -23,6 +28,8 @@ def register_user(request):
 
 # login(users)
 @api_view(['POST'])
+@schema(AutoSchema())
+@extend_schema(responses=UserSerializer)
 def user_login(request):
     if request.method == 'POST':
         username = request.data.get('username')
@@ -32,6 +39,7 @@ def user_login(request):
         if '@' in username:
             try:
                 user = CustomUser.objects.get(email=username)
+                username = user.username
             except ObjectDoesNotExist:
                 pass
 
@@ -49,6 +57,8 @@ def user_login(request):
     
 # logout(users)
 @api_view(['POST'])
+@schema(AutoSchema())
+@extend_schema(responses=UserSerializer)
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def user_logout(request):
@@ -62,6 +72,8 @@ def user_logout(request):
         
 # change pass
 @api_view(['POST'])
+@schema(AutoSchema())
+@extend_schema(responses=ChangePasswordSerializer)
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def change_password(request):
@@ -79,6 +91,8 @@ def change_password(request):
     
 
 @api_view(['POST'])
+@schema(AutoSchema())
+@extend_schema(responses=VerifyOTPSerializer)
 @permission_classes([AllowAny])
 def verify_otp(request):
     serializer = VerifyOTPSerializer(data=request.data)
@@ -92,7 +106,7 @@ def verify_otp(request):
             
             if not otp_obj.is_valid():
                 return Response({"error": "OTP expired"}, status=400)
-            
+            send_welcome_email.delay(email)
             user.is_verified = True
             user.save()
             otp_obj.delete() # Cleanup

@@ -14,23 +14,30 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+import environ
+import os
 
+# Path to the folder containing settings.py
+SETTING_DIR = Path(__file__).resolve().parent
+
+env = environ.Env()
+
+# This combines the directory path with the filename
+environ.Env.read_env(os.path.join(SETTING_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-d*fzffx-qzpcb#dpfa%2vc*mzlsny2k-*dj&=st_!g$s5*!1!5'
+SECRET_KEY = env('SEC_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
-
 # Application definition
 
 INSTALLED_APPS = [
+    
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -38,24 +45,31 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
-
-    'accounts.apps.AccountsConfig', 
-
     'django_rest_passwordreset',
     'rest_framework',
     'rest_framework.authtoken',
+  
+    'drf_spectacular',   
 
-    
+    'accounts.apps.AccountsConfig', 
+
+  
 ]
+
+
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
 
 # authentication
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
-# rest framework settings
-REST_FRAMEWOK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-    ],
+
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Chat App API',
+    'DESCRIPTION': 'API for registering users and sending messages',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_PATCH': True,
 }
 
 MIDDLEWARE = [
@@ -91,13 +105,22 @@ WSGI_APPLICATION = 'chatproject.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'chat_db',
+        'USER': 'postgres',
+        'PASSWORD': env('POSTGRES_PASS'),
+        'HOST': 'db', # The name of the service in docker-compose
+        'PORT': '5432',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -116,17 +139,32 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+# Ensure these are exactly like this:
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('redis', 6379)], 
+        },
+    },
+}
 
 
 # Email Backend Configuration
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Replace with your preferred backend
 
 EMAIL_PORT = 587  
 EMAIL_USE_TLS = True 
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = 'hasnaaprogs@gmail.com'
-EMAIL_HOST_PASSWORD = 'awwp vuoa kcpv oeuh'
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASS')
 # EMAIL_TIMEOUT = 5
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
@@ -141,10 +179,17 @@ USE_TZ = True
 
 
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
 
-
+# rest framework settings
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    
+}
