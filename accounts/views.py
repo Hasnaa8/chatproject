@@ -4,13 +4,17 @@ from django.contrib.auth import authenticate
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, authentication_classes, schema
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework import generics, filters
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import update_session_auth_hash
 from .tasks import send_welcome_email, send_otp_email
-from .serializers import UserSerializer, ChangePasswordSerializer, VerifyOTPSerializer
-from .models import CustomUser, EmailOTP
-
+from .serializers import UserSerializer, ProfileSerializer, ChangePasswordSerializer, VerifyOTPSerializer
+from .models import CustomUser, EmailOTP, Profile
+from .permissions import IsOwnerOrReadOnly
+from rest_framework.exceptions import PermissionDenied
+            
 from drf_spectacular.openapi import AutoSchema
 from drf_spectacular.utils import extend_schema
 
@@ -117,3 +121,30 @@ def verify_otp(request):
         except (CustomUser.DoesNotExist, EmailOTP.DoesNotExist):
             return Response({"error": "Invalid email or OTP"}, status=400)
     return Response(serializer.errors, status=400)
+
+
+# 1. LIST ONLY (No Create)
+class ProfileList(generics.ListAPIView):
+    queryset = Profile.objects.select_related('user').all()
+    serializer_class = ProfileSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly] # Anyone can see, must log in to filter
+    authentication_classes = [TokenAuthentication]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['gender']
+    search_fields = ['user__username', 'first_name', 'last_name', 'email', 'phone_number']
+
+# 2. RETRIEVE, UPDATE, DELETE
+class ProfileDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Profile.objects.select_related('user').all()
+    serializer_class = ProfileSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    authentication_classes = [TokenAuthentication]
+    lookup_field = 'user__username' # Allows URL like /profiles/5/ where 5 is User ID
+    lookup_url_kwarg = 'username'
+    
+    def perform_update(self, serializer):
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        user = instance.user
+        user.delete()     # Deletes User

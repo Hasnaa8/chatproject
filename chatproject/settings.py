@@ -182,6 +182,12 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Media
+# The URL used to access the files in the browser
+MEDIA_URL = '/media/'
+# The actual path on your hard drive/container where files are saved
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 # rest framework settings
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',

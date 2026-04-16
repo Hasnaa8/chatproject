@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser
+from .models import CustomUser, Profile
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -28,3 +28,17 @@ class ResetPasswordEmailSerializer(serializers.Serializer):
 class VerifyOTPSerializer(serializers.Serializer):
     email = serializers.EmailField()
     otp = serializers.CharField(max_length=6, min_length=6)
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.EmailField(source='user.email', read_only=True)
+    class Meta:
+        model = Profile
+        fields = [
+            'username', 'email', 'first_name', 'last_name', 
+            'bio', 'gender', 'profile_picture', 'phone_number', 
+            'created', 'updated', 'is_completed', 'url', 'links', 'other_email'
+        ]
+        # user__id is read-only because it's set during registration
+        read_only_fields = ['username', 'email', 'created', 'updated']

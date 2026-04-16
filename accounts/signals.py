@@ -10,7 +10,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 # 2. Your Custom Models
-from .models import CustomUser, EmailOTP
+from .models import CustomUser, EmailOTP, Profile
 
 # 3. Email and Utilities
 from django.core.mail import send_mail
@@ -69,4 +69,10 @@ def send_otp_on_register(sender, instance, created, **kwargs):
         send_otp_email.delay(instance.email, otp_obj.otp)
         
         
-        
+@receiver(post_save, sender=CustomUser)
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+    instance.profile.save()
+
+
