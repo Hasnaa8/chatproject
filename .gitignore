@@ -8,6 +8,9 @@ venv/
 env/
 .env
 
+# Database
+db.sqlite3
+
 # Media/Static
 /static/
 /media/
