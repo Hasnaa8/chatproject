@@ -161,7 +161,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True 
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = 'hasnaaprogs@gmail.com'
-EMAIL_HOST_PASSWORD = 'awwp vuoa kcpv oeuh'
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASS')
 # EMAIL_TIMEOUT = 5
 
 # Internationalization

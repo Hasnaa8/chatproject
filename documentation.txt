@@ -1,10 +1,10 @@
-//enroll course
-http://0.0.0.0:8000/api/ POST REQ =>{
-	req: user_id , course_id
+//register
+http://0.0.0.0:8000/api/register/ POST REQ =>{
+	req: username, email, password
 	res:{
     	"success": true,
    	 "data": {
-       		 "user_id": ,
+       		"user_id": ,
         	"course_id": ,
         	"id": 
     		},
