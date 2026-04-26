@@ -6,7 +6,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ['username', 'email', 'password', 'is_verified']
         extra_kwargs = {'password': {'write_only': True}}
-
+        read_only_fields = ['is_verified']
     def create(self, validated_data):
         user = CustomUser(
             username=validated_data['username'],
@@ -41,4 +41,8 @@ class ProfileSerializer(serializers.ModelSerializer):
             'created', 'updated', 'is_completed', 'url', 'links', 'other_email'
         ]
         # user__id is read-only because it's set during registration
-        read_only_fields = ['username', 'email', 'created', 'updated']
+        read_only_fields = ['username', 'email', 'created', 'updated', 'is_completed']
+
+class LoginRequestSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True)
+    password = serializers.CharField(required=True)

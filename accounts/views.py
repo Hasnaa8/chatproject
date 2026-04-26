@@ -10,18 +10,21 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import update_session_auth_hash
 from .tasks import send_welcome_email, send_otp_email
-from .serializers import UserSerializer, ProfileSerializer, ChangePasswordSerializer, VerifyOTPSerializer
+from .serializers import LoginRequestSerializer, UserSerializer, ProfileSerializer, ChangePasswordSerializer, VerifyOTPSerializer
 from .models import CustomUser, EmailOTP, Profile
 from .permissions import IsOwnerOrReadOnly
 from rest_framework.exceptions import PermissionDenied
             
-from drf_spectacular.openapi import AutoSchema
+from drf_spectacular.openapi import AutoSchema, OpenApiTypes
 from drf_spectacular.utils import extend_schema
 
 # registering users
+@extend_schema(
+    request=UserSerializer,
+    responses={201: UserSerializer},
+    description="Register a new user. An OTP will be sent to the provided email for verification."
+)
 @api_view(['POST'])
-@schema(AutoSchema())
-@extend_schema(responses=UserSerializer)
 def register_user(request):
     if request.method == 'POST':
         serializer = UserSerializer(data=request.data)
@@ -31,9 +34,12 @@ def register_user(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # login(users)
+@extend_schema(
+    request=LoginRequestSerializer, 
+    responses={200: UserSerializer},
+    description="Login to the application and obtain an authentication token."
+)
 @api_view(['POST'])
-@schema(AutoSchema())
-@extend_schema(responses=UserSerializer)
 def user_login(request):
     if request.method == 'POST':
         username = request.data.get('username')
@@ -49,20 +55,24 @@ def user_login(request):
 
         if not user:
             user = authenticate(username=username, password=password)
-       
-        if not user.is_verified:
-                return Response({"error": "Account not verified. Check your email."}, status=403)
-       
-        if user:
-            token, _ = Token.objects.get_or_create(user=user)
-            return Response({'token': token.key}, status=status.HTTP_200_OK)
+
+        if user is not None:
+            if not user.is_verified:
+                    return Response({"error": "Account not verified. Check your email."}, status=403)
+        
+            if user:
+                token, _ = Token.objects.get_or_create(user=user)
+                return Response({'user':UserSerializer(user).data, 'token': token.key}, status=status.HTTP_200_OK)
 
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
     
 # logout(users)
+@extend_schema(
+    request=None,
+    responses={204: None},
+    description="Logout user and delete token."
+)
 @api_view(['POST'])
-@schema(AutoSchema())
-@extend_schema(responses=UserSerializer)
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def user_logout(request):
@@ -75,9 +85,12 @@ def user_logout(request):
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 # change pass
+@extend_schema(
+    request=ChangePasswordSerializer,
+    responses={200: OpenApiTypes.OBJECT},
+    description="Change the password of the authenticated user. Requires old and new password."
+)
 @api_view(['POST'])
-@schema(AutoSchema())
-@extend_schema(responses=ChangePasswordSerializer)
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def change_password(request):
@@ -94,9 +107,12 @@ def change_password(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
+@extend_schema(
+    request=VerifyOTPSerializer,
+    responses={200: OpenApiTypes.OBJECT},
+    description="Verify the OTP sent to the user's email for account verification."
+)
 @api_view(['POST'])
-@schema(AutoSchema())
-@extend_schema(responses=VerifyOTPSerializer)
 @permission_classes([AllowAny])
 def verify_otp(request):
     serializer = VerifyOTPSerializer(data=request.data)

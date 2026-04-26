@@ -38,14 +38,15 @@ class Profile(models.Model):
     profile_picture = models.ImageField(
             upload_to='profiles/%Y/%m/', 
             default='profiles/default_user.png',
-            blank=True
+            blank=True,
+            null=True
         )    
     other_email = models.EmailField(blank=True)
     phone_number = models.CharField(max_length=10, unique=True, null=True)
     first_name = models.CharField(max_length=30, blank=True)
     last_name = models.CharField(max_length=30, blank=True)
     gender = models.CharField(max_length=1, choices=Gender.choices, blank=True, null=True)
-    url = models.URLField(max_length=255, blank=True)    
+    url = models.URLField(max_length=255, blank=True, null=True)    
     links = models.JSONField(default=dict, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
@@ -58,7 +59,6 @@ class Profile(models.Model):
     def save(self, *args, **kwargs):
         required_fields = [
             bool(self.bio), 
-            bool(self.profile_picture), 
             bool(self.phone_number), 
             bool(self.first_name), 
             bool(self.last_name),
