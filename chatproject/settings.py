@@ -52,8 +52,8 @@ INSTALLED_APPS = [
     'drf_spectacular',   
 
     'accounts.apps.AccountsConfig', 
-
-  
+    'chat.apps.ChatConfig',
+    'social.apps.SocialConfig',
 ]
 
 

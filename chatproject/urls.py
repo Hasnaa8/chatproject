@@ -22,7 +22,8 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('accounts.urls')), 
+    path('api/', include('accounts.urls')),
+    path('chat/', include('chat.urls')), 
     path('api/password_reset/', include('django_rest_passwordreset.urls', namespace='password_reset')),
     
     # This generates the actual schema file (YAML/JSON)
