@@ -1,5 +1,7 @@
 from celery import shared_task
 from django.core.mail import send_mail
+from .models import EmailOTP
+from django.utils import timezone
 
 @shared_task
 def send_otp_email(email, otp):
@@ -20,4 +22,7 @@ def send_welcome_email(email):
             [email],
         )
 
-    
+@shared_task
+def cleanup_expired_otps():
+    deleted_count, _ = EmailOTP.objects.filter(expires_at__lt=timezone.now()).delete()
+    return f"Deleted {deleted_count} expired OTPs"
