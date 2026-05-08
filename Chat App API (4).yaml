@@ -33,6 +33,88 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/contacts/:
+    get:
+      operationId: contacts_list
+      parameters:
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - contacts
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Contact'
+          description: ''
+    post:
+      operationId: contacts_create
+      tags:
+      - contacts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Contact'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Contact'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Contact'
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+          description: ''
+  /api/contacts/{username}/:
+    get:
+      operationId: contacts_retrieve
+      parameters:
+      - in: path
+        name: username
+        schema:
+          type: string
+        required: true
+      tags:
+      - contacts
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+          description: ''
+    delete:
+      operationId: contacts_destroy
+      parameters:
+      - in: path
+        name: username
+        schema:
+          type: string
+        required: true
+      tags:
+      - contacts
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/login/:
     post:
       operationId: login_create
@@ -354,6 +436,37 @@ components:
       required:
       - new_password
       - old_password
+    Contact:
+      type: object
+      properties:
+        username:
+          type: string
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 30
+        last_name:
+          type: string
+          maxLength: 30
+        profile_picture:
+          type: string
+          format: uri
+          readOnly: true
+          nullable: true
+        phone_number:
+          type: string
+          readOnly: true
+          nullable: true
+        is_completed:
+          type: boolean
+        is_contact:
+          type: string
+          readOnly: true
+      required:
+      - is_contact
+      - phone_number
+      - profile_picture
+      - username
     Email:
       type: object
       properties:
@@ -446,6 +559,12 @@ components:
           type: string
           format: email
           maxLength: 254
+        is_contact:
+          type: string
+          readOnly: true
+        is_own_profile:
+          type: string
+          readOnly: true
     Profile:
       type: object
       properties:
@@ -499,10 +618,18 @@ components:
           type: string
           format: email
           maxLength: 254
+        is_contact:
+          type: string
+          readOnly: true
+        is_own_profile:
+          type: string
+          readOnly: true
       required:
       - created
       - email
       - is_completed
+      - is_contact
+      - is_own_profile
       - updated
       - username
     ResetToken:

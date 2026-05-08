@@ -10,6 +10,7 @@ class FriendShip(models.Model):
     
     from_user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='friendships_sent', on_delete=models.CASCADE)
     to_user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='friendships_received', on_delete=models.CASCADE)
+    
     status = models.CharField(choices=Status.choices, max_length=20, default='pending')
 
     created_at = models.DateTimeField(auto_now_add=True)

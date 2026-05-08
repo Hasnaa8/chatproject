@@ -1,4 +1,6 @@
 from rest_framework import serializers
+
+from social.models import FriendShip
 from .models import CustomUser, Profile
 
 class UserSerializer(serializers.ModelSerializer):
@@ -50,15 +52,44 @@ class ProfileSerializer(serializers.ModelSerializer):
             return user.contacts.filter(pk=obj.user.pk).exists()
         return False
 
+    friend_status = serializers.SerializerMethodField()
+    def get_friend_status(self, obj):
+        user = self.context['request'].user
+        if user.is_authenticated:
+            if user.pk == obj.user.pk:
+                return None
+        
+        from_user = user
+        to_user = obj.user      
+        friendship1 = FriendShip.objects.filter(from_user=from_user, to_user=to_user)
+        friendship2 = FriendShip.objects.filter(from_user=to_user, to_user=from_user)
+        friendship = (friendship1 | friendship2).first()
+        
+        if friendship:
+            if friendship.status == "accepted":
+                return "friends"
+            elif friendship.status == "rejected":
+                friendship.delete()
+            elif friendship.status == "pending":
+                if friendship.from_user == from_user:
+                    return "friend_request_sent"
+                else:
+                    return "friend_request_received"
+        else:
+            return "not_friends"
+        return None
+            
+
+
     class Meta:
         model = Profile
         fields = [
             'username', 'email', 'first_name', 'last_name', 
             'bio', 'gender', 'profile_picture', 'phone_number', 
             'created', 'updated', 'is_completed', 'url', 'links', 'other_email',
-            'is_contact', 'is_own_profile'
+            'is_contact', 'is_own_profile', 'friend_status'
         ]
-        read_only_fields = ['username', 'email', 'created', 'updated', 'is_completed', 'is_contact']
+        read_only_fields = ['username', 'email', 'created', 'updated', 'is_completed', 'is_contact', 'friend_status']
 
 
 class OwnProfileSerializer(ProfileSerializer):
