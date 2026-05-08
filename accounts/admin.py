@@ -16,10 +16,12 @@ class CustomUserAdmin(UserAdmin):
     
     list_filter = ['is_verified', 'is_staff', 'is_active', 'date_joined']
     
-    fieldsets = UserAdmin.fieldsets + (
-        ('Custom App Fields', {
-            'fields': ('is_verified', 'following'),
-        }),
+    fieldsets = (
+        (None, {'fields': ('username', 'password')}),
+        ('Personal info', {'fields': ('email',)}), 
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
+        ('Custom App Fields', {'fields': ('is_verified', 'following')}),
     )
 
 

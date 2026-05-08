@@ -131,7 +131,7 @@ def verify_otp(request):
             
             user.is_verified = True
             user.save()
-            otp_obj.delete() # Cleanup
+            otp_obj.delete() 
             return Response({"message": "Verification successful!"})
             
         except (CustomUser.DoesNotExist, EmailOTP.DoesNotExist):
@@ -139,7 +139,6 @@ def verify_otp(request):
     return Response(serializer.errors, status=400)
 
 
-# 1. LIST ONLY (No Create)
 class ProfileList(generics.ListAPIView):
     queryset = Profile.objects.select_related('user').all()
     serializer_class = ProfileSerializer
@@ -150,13 +149,12 @@ class ProfileList(generics.ListAPIView):
     search_fields = ['user__username', 'first_name', 'last_name', 'email', 'phone_number']
     
 
-# 2. RETRIEVE, UPDATE, DELETE
 class ProfileDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Profile.objects.select_related('user').all()
     serializer_class = ProfileSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
     authentication_classes = [TokenAuthentication]
-    lookup_field = 'user__username' # Allows URL like /profiles/5/ where 5 is User ID
+    lookup_field = 'user__username' # Allows URL like /profiles/x/ where x is User username
     lookup_url_kwarg = 'username'
     
     def perform_update(self, serializer):
