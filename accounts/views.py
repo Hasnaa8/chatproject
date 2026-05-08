@@ -9,8 +9,9 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import update_session_auth_hash
+from django.shortcuts import get_object_or_404
 from .tasks import send_welcome_email, send_otp_email
-from .serializers import LoginRequestSerializer, UserSerializer, ProfileSerializer, OwnProfileSerializer, ChangePasswordSerializer, VerifyOTPSerializer
+from .serializers import ContactSerializer, LoginRequestSerializer, UserSerializer, ProfileSerializer, OwnProfileSerializer, ChangePasswordSerializer, VerifyOTPSerializer
 from .models import CustomUser, EmailOTP, Profile
 from .permissions import IsOwnerOrReadOnly
 from rest_framework.exceptions import PermissionDenied
@@ -140,7 +141,6 @@ def verify_otp(request):
 
 
 class ProfileList(generics.ListAPIView):
-    queryset = Profile.objects.select_related('user').prefetch_related('user__contacts')
     serializer_class = ProfileSerializer
     permission_classes = [IsAuthenticatedOrReadOnly] # Anyone can see, must log in to filter
     authentication_classes = [TokenAuthentication]
@@ -148,21 +148,25 @@ class ProfileList(generics.ListAPIView):
     filterset_fields = ['gender']
     search_fields = ['user__username', 'first_name', 'last_name', 'email', 'phone_number']
     
-
+    def get_queryset(self):
+        return Profile.objects.select_related('user').prefetch_related('user__contacts')
+    
 class ProfileDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Profile.objects.select_related('user').prefetch_related('user__contacts')
     permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
     authentication_classes = [TokenAuthentication]
     lookup_field = 'user__username' # Allows URL like /profiles/x/ where x is User username
     lookup_url_kwarg = 'username'
+    
+    def get_queryset(self):
+        return Profile.objects.select_related('user').prefetch_related('user__contacts')
     
     def get_serializer_class(self):
         try:
             instance = self.get_object()
             if instance.user == self.request.user:
                 return OwnProfileSerializer
-        except:
-            pass
+        except Exception as e:
+            print(f"Serializer error: {e}")
         return ProfileSerializer
     
     def perform_update(self, serializer):
@@ -171,3 +175,67 @@ class ProfileDetail(generics.RetrieveUpdateDestroyAPIView):
     def perform_destroy(self, instance):
         user = instance.user
         user.delete()     # Deletes User
+
+
+
+class ContactList(generics.ListCreateAPIView):
+    serializer_class = ContactSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    search_fields = ['user__username', 'first_name', 'last_name', 'email', 'phone_number']
+    
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated:
+            return Profile.objects.filter(
+                user__in=user.contacts.all()
+            ).select_related('user').prefetch_related('user__contacts')
+        else:
+            return Profile.objects.none()
+        
+    def create(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"detail": "Auth required"}, status=401)
+        
+        username = request.data.get('username')
+        if not username:
+            return Response({"error": "Username is required"}, status=400)
+        
+        target_user = get_object_or_404(CustomUser, username=username)
+
+        if request.user == target_user:
+            return Response({"msg": "hmmm, you cant add your  self to your contacts!"}, status=400)
+      
+        if request.user.contacts.filter(username=username).exists():
+            return Response({"msg": "hmmm, you cant add same user to your contacts twice!"}, status=400)
+            
+        request.user.contacts.add(target_user)
+        serializer = self.get_serializer(target_user.profile)
+
+        return Response({
+            "status": "added",
+            "contact info": serializer.data
+        }, status=201)
+    
+class ContactDetail(generics.RetrieveDestroyAPIView):
+    serializer_class = ContactSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+    lookup_field = 'user__username' # Allows URL like /contacts/x/ where x is User username
+    lookup_url_kwarg = 'username'
+    
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated:
+            return Profile.objects.filter(
+                user__in=user.contacts.all()
+            ).select_related('user').prefetch_related('user__contacts')
+        else:
+            return Profile.objects.none()
+        
+    def perform_destroy(self, instance):
+        current_user = self.request.user
+        contact_user = instance.user
+
+        current_user.contacts.remove(contact_user)

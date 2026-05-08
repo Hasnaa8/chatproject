@@ -77,3 +77,13 @@ class OwnProfileSerializer(ProfileSerializer):
 class LoginRequestSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     password = serializers.CharField(required=True)
+
+class ContactSerializer(ProfileSerializer):
+    class Meta(ProfileSerializer.Meta):
+        fields = [
+            'username', 'first_name', 'last_name', 
+            'profile_picture', 'phone_number',
+            'is_completed', 'is_contact'
+        ]
+        read_only_fields = ['username', 'profile_picture', 'phone_number']
+        
