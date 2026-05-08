@@ -1,21 +1,16 @@
 from django.core.mail import EmailMultiAlternatives
-from django.dispatch import receiver
+
 from django.template.loader import render_to_string
 from django.urls import reverse
 
 from django_rest_passwordreset.signals import reset_password_token_created
 
-# 1. Signal tools to connect the "Eavesdropper" to the User model
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-# 2. Your Custom Models
 from .models import CustomUser, EmailOTP, Profile
 
-# 3. Email and Utilities
 from django.core.mail import send_mail
-from django.utils import timezone  # Useful for timestamping OTP creation
-import random
 from .tasks import send_otp_email
 
 

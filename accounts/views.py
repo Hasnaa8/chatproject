@@ -148,6 +148,7 @@ class ProfileList(generics.ListAPIView):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['gender']
     search_fields = ['user__username', 'first_name', 'last_name', 'email', 'phone_number']
+    
 
 # 2. RETRIEVE, UPDATE, DELETE
 class ProfileDetail(generics.RetrieveUpdateDestroyAPIView):

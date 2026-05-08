@@ -32,7 +32,7 @@ environ.Env.read_env(os.path.join(SETTING_DIR, '.env'))
 SECRET_KEY = env('SEC_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env('DEBUG', default=False)
 
 # Application definition
 
@@ -57,7 +57,7 @@ INSTALLED_APPS = [
 ]
 
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # authentication
 AUTH_USER_MODEL = 'accounts.CustomUser'

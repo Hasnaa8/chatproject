@@ -1,5 +1,3 @@
-from django.db import models
-
 import random
 from django.utils import timezone
 from datetime import timedelta
@@ -29,6 +27,9 @@ class EmailOTP(models.Model):
         self.otp = str(random.randint(100000, 999999))
         self.created_at = timezone.now()
         self.save()
+
+    def __str__(self):
+        return f"OTP for {self.user.username} - {self.otp}"
 
 
 class Profile(models.Model):
