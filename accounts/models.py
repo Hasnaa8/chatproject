@@ -5,11 +5,16 @@ from datetime import timedelta
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
     is_verified = models.BooleanField(default=False)
     
-    following = models.ManyToManyField('self', symmetrical=False, related_name='followers', blank=True)
+    contacts = models.ManyToManyField(
+        'self', 
+        symmetrical=True, 
+        blank=True,
+    )
 
     def __str__(self):
         return self.username
@@ -60,16 +65,21 @@ class Profile(models.Model):
     def __str__(self):
         return self.user.username
     
+    @staticmethod
+    def is_fill(att):
+        if att is not None and str(att).strip()!="":
+            return True
+        return False
+        
     def save(self, *args, **kwargs):
         required_fields = [
-            bool(self.bio), 
-            bool(self.phone_number), 
-            bool(self.first_name), 
-            bool(self.last_name),
-            bool(self.url),
-            bool(self.gender)
+            self.is_fill(self.bio), 
+            self.is_fill(self.phone_number), 
+            self.is_fill(self.first_name), 
+            self.is_fill(self.last_name),
+            self.is_fill(self.url),
+            self.is_fill(self.gender)
         ]
-        # Calculate BEFORE saving
         self.is_completed = all(required_fields)
-        # Save everything once
+        
         super().save(*args, **kwargs)

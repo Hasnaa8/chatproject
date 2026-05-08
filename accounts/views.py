@@ -10,7 +10,7 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import update_session_auth_hash
 from .tasks import send_welcome_email, send_otp_email
-from .serializers import LoginRequestSerializer, UserSerializer, ProfileSerializer, ChangePasswordSerializer, VerifyOTPSerializer
+from .serializers import LoginRequestSerializer, UserSerializer, ProfileSerializer, OwnProfileSerializer, ChangePasswordSerializer, VerifyOTPSerializer
 from .models import CustomUser, EmailOTP, Profile
 from .permissions import IsOwnerOrReadOnly
 from rest_framework.exceptions import PermissionDenied
@@ -140,7 +140,7 @@ def verify_otp(request):
 
 
 class ProfileList(generics.ListAPIView):
-    queryset = Profile.objects.select_related('user').all()
+    queryset = Profile.objects.select_related('user').prefetch_related('user__contacts')
     serializer_class = ProfileSerializer
     permission_classes = [IsAuthenticatedOrReadOnly] # Anyone can see, must log in to filter
     authentication_classes = [TokenAuthentication]
@@ -150,12 +150,20 @@ class ProfileList(generics.ListAPIView):
     
 
 class ProfileDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Profile.objects.select_related('user').all()
-    serializer_class = ProfileSerializer
+    queryset = Profile.objects.select_related('user').prefetch_related('user__contacts')
     permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
     authentication_classes = [TokenAuthentication]
     lookup_field = 'user__username' # Allows URL like /profiles/x/ where x is User username
     lookup_url_kwarg = 'username'
+    
+    def get_serializer_class(self):
+        try:
+            instance = self.get_object()
+            if instance.user == self.request.user:
+                return OwnProfileSerializer
+        except:
+            pass
+        return ProfileSerializer
     
     def perform_update(self, serializer):
         serializer.save()
